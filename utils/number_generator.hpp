@@ -1,151 +1,106 @@
 #pragma once
-// This directive ensures the file is included only once in a single compilation, preventing duplicate definitions.
 
 #include <random>
-// This includes the <random> header, which provides facilities for random number generation.
 
-class NumberGenerator
-{
-protected:
-    std::random_device rd;
-    // This is an instance of std::random_device, which is used to obtain a seed for the random number engine.
+// Base class for number generators
+class NumberGenerator {
+ protected:
+    std::random_device rd_;  // Seed generator
+    std::mt19937 gen_;       // Mersenne Twister pseudo-random generator
 
-    std::mt19937 gen;
-    // This is an instance of std::mt19937, a Mersenne Twister pseudo-random generator of 32-bit numbers.
+    NumberGenerator() : gen_(rd_()) {}  // Initialize generator with random seed
 
-    NumberGenerator(): gen(rd()){}
-    // This is the constructor for the NumberGenerator class. It initializes the gen member with a seed from rd.
+    virtual ~NumberGenerator() = default;
 };
 
-template<typename T>
-class RealNumberGenerator: public NumberGenerator
-{
-    private:
-        std::uniform_real_distribution<T> dis;
-
-    public:
-        RealNumberGenerator()
-                : NumberGenerator()
-                , dis(0.0f, 1.0f)
-        {}
-
-        RealNumberGenerator(const RealNumberGenerator<T>& right)
-                : NumberGenerator()
-                , dis(right.dis)
-        {}
-
-        float get()
-        {
-            return dis(gen);
-        }
-        
-        float getUnder(T max)
-        {
-            return get() * max;
-        }
-        
-        float getRange(T min, T max)
-        {
-            return min + get() * (max - min);
-        }
-
-        float getRange(T width)
-        {
-            return getRange(-width * 0.5f, width * 0.5f);
-        }
-};
-
+// Template class for generating real numbers (floating-point)
 template <typename T>
-class RNG
-{
-    private:
-        static RealNumberGenerator<T> gen;
-    
-    public:
-        static T get()
-        {
-            return gen.get();
-        }
-        
-        static float getUnder(T max)
-        {
-            return gen.getUnder();
-        }
+class RealNumberGenerator : public NumberGenerator {
+ private:
+    std::uniform_real_distribution<T> distribution_;
 
-        static uint64_t getUintUnder(uint64_t max)
-        {
-            return static_cast<unit64_t>(gen.getUnder(static_cast<float>(max) + 1.0f));
-        }
+ public:
+    RealNumberGenerator()
+        : NumberGenerator(), distribution_(0.0f, 1.0f) {}
 
-        static float getRange(T min, T max)
-        {
-            return gen.getRange(min, max);
-        }
+    explicit RealNumberGenerator(const RealNumberGenerator<T>& right)
+        : NumberGenerator(), distribution_(right.distribution_) {}
 
-        static float getRange(T width)
-        {
-            return gen.getRange(width);
-        }
+    T Get() { return distribution_(gen_); }
 
-        static float getFullRange(T width)
-        {
-            return get.genRange(static_cast<T>(2.0f) * width);
-        }
+    T GetUnder(T max) { return Get() * max; }
 
-        static bool proba(float threshold)
-        {
-            return get() < threshold;
-        }
+    T GetRange(T min, T max) { return min + Get() * (max - min); }
+
+    T GetRange(T width) { return GetRange(-width * 0.5f, width * 0.5f); }
 };
 
+// Static random number generator for real numbers
+template <typename T>
+class RNG {
+ private:
+    static RealNumberGenerator<T> generator_;
+
+ public:
+    static T Get() { return generator_.Get(); }
+
+    static T GetUnder(T max) { return generator_.GetUnder(max); }
+
+    static uint64_t GetUintUnder(uint64_t max) {
+        return static_cast<uint64_t>(generator_.GetUnder(static_cast<T>(max) + 1.0f));
+    }
+
+    static T GetRange(T min, T max) { return generator_.GetRange(min, max); }
+
+    static T GetRange(T width) { return generator_.GetRange(width); }
+
+    static T GetFullRange(T width) { return generator_.GetRange(static_cast<T>(2.0f) * width); }
+
+    static bool Proba(float threshold) { return Get() < threshold; }
+};
+
+// Define float-based random number generator
 using RNGf = RNG<float>;
 
-template<typename T>
-RealNumberGenerator<T> RNG<T>::gen = RealNumberGenerator<T>();
-
+// Template specialization for real number generator
 template <typename T>
-class IntegerNumberGenerator : public NumberGenerator
-{
-public:
-    IntegerNumberGenerator(): NumberGenerator()
-    {}
+RealNumberGenerator<T> RNG<T>::generator_ = RealNumberGenerator<T>();
 
-    IntegerNumberGenerator(const IntegerNumberGenerator<T>) & right
-            :NumberGenerator()
-    {}
+// Template class for generating integer numbers
+template <typename T>
+class IntegerNumberGenerator : public NumberGenerator {
+ public:
+    IntegerNumberGenerator() : NumberGenerator() {}
 
-    T getUnder(T max)
-    {
-        std::uniform_int_distribution::mt19937::result_type> dist(0, max);
-        return dist(gen);
+    explicit IntegerNumberGenerator(const IntegerNumberGenerator<T>& right)
+        : NumberGenerator() {}
+
+    T GetUnder(T max) {
+        std::uniform_int_distribution<T> dist(0, max);
+        return dist(gen_);
     }
 
-    T getRange(T min, T max)
-    {
-        std::uniform_int_distribution<std::mt19937::result_type> dist(min, max);
-        return dist(gen);
+    T GetRange(T min, T max) {
+        std::uniform_int_distribution<T> dist(min, max);
+        return dist(gen_);
     }
 };
 
-template<typename T>
-class RNGi
-{
-    private:
-        static IntegerNumberGenerator<T> gen;
-    public:
-        static T getUnder(T max)
-        {
-            return gen.getUnder(max);
-        }
+// Static random number generator for integers
+template <typename T>
+class RNGi {
+ private:
+    static IntegerNumberGenerator<T> generator_;
 
-        static T getRange(T min, T max)
-        {
-            return gen.getRange(min, max);
-        }
+ public:
+    static T GetUnder(T max) { return generator_.GetUnder(max); }
+
+    static T GetRange(T min, T max) { return generator_.GetRange(min, max); }
 };
 
-template<typename T>
-IntegerNumberGenerator<T> RNGi<T>::gen;
+// Template specialization for integer number generator
+template <typename T>
+IntegerNumberGenerator<T> RNGi<T>::generator_;
 
 using RNGi32 = RNGi<int32_t>;
 using RNGi64 = RNGi<int64_t>;

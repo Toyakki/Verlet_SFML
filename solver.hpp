@@ -90,7 +90,7 @@ public:
         return objects_.size();
     }
 
-    [[nodiscoard]] float GetTime() const {
+    [[nodiscard]] float GetTime() const {
         return time_;
     }
 

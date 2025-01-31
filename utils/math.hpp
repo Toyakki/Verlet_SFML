@@ -1,4 +1,3 @@
-
 #pragma once
 #include <SFML/System/Vector2.hpp>
 
@@ -11,8 +10,3 @@ struct Math
         return {v1.x * v2.x, v1.y * v2.y};
     }
 };
-
-
-// g++ -std=c++17 -I/opt/homebrew/include -L/opt/homebrew/lib \
-//     linear.cpp -o my_program \
-//     -lsfml-graphics -lsfml-window -lsfml-system
